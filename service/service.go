@@ -81,6 +81,8 @@ func Connect(addr, port string) {
 	Read_message(res)
 
 }
+
+
 func Download_file_req(message *http.Request,folder , name string ) {
 	
 	data,err := io.ReadAll(message.Body)
@@ -130,13 +132,13 @@ func Send_file(recipient ...string) {
 		check(err)
 		fmt.Println("   content size: ", content.Size(), "bytes")
 
-		//req, err:= http.NewRequest("POST",recipient[1],data)
-		resp, err := http.Post(recipient[1], "all", data)
+		//resp, err:= http.NewRequest("POST",recipient[1],data)
+		resp, err := http.Post(recipient[1]+file_name, "all", data)
 		//recipient[1]  url to send to server
 
 
-		check(err)
 		Read_message(resp)
+		check(err)
 
 	}
 
@@ -145,7 +147,16 @@ func Send_file(recipient ...string) {
 
 	if recipient[0] == "to_client" {
 		fmt.Println("> Sending files to: "+ recipient[1] )
+
+		//data:=[]byte( `{"Helloo"}`)
+
    // print list of sub channel
+   //resp, err := http.Post(recipient[1], "all", data)
+  // resp, err :=  http.Response
+		//recipient[1]  url to send to server
+
+
+		//check(err)
 
 	}
 
@@ -337,6 +348,8 @@ func Stadistics() {
 
 }
 
+
+
 func Action(do_this ...string) http.Handler {
 
 	//split commands
@@ -381,7 +394,7 @@ func Action(do_this ...string) http.Handler {
 		case "send":
 			fmt.Println("> client:", instruction[0], ",sending file to channel:", instruction[2])
 			
-			fmt.Println("cuerpo")
+			fmt.Println("cuerpo ini")
 
 			if !channel_exists{
 			fmt.Fprint(w, "> the channel doesn't exist: "+instruction[2]+"\n")
@@ -392,19 +405,64 @@ func Action(do_this ...string) http.Handler {
 			Download_file_req( r ,instruction[2],instruction[3])
 			// read and write the file on the channel
 
-			fmt.Println("cuerpo")
+			fmt.Println("cuerpo fin ")
 
 			fmt.Fprint(w, "> sending a file to channel: "+instruction[2]+"\n")
 
 		case "receive":
 			fmt.Println("> client:", instruction[0], ",downloading files... ")
 			
-			Send_file("to_client",instruction[0] )
+			//Send_file("to_client",instruction[0] )
+			fmt.Fprint(w, "> listing the files from channel: "+instruction[2]+"\n")
+			//may  i can  use ********************************** with name or all 
+			var list_sub_channels= make([]string, 0)
+			for i := 0; i < num_channels; i++ {
+				if len(lst_channels[i]) > 0 {
+
+						if Be_there(lst_channels[i], "client", instruction[0]) { //== false
+							list_sub_channels = append(list_sub_channels, lst_channels[i][0])
+	
+					
+					}
+				}
+			}
+
+			if len(list_sub_channels)==0 {
+			fmt.Fprint(w, "Nothing to download" )
+
+				break
+			}
+			fmt.Println(len( list_sub_channels) )
+
+			fmt.Fprint(w, list_sub_channels )
+			fmt.Fprint(w,"\n")
+
+			for _, folder:= range list_sub_channels {
+
+			items, ierr := os.ReadDir("Channels/"+folder+"/")
+			//fmt.Println( items )
+			if len(items)==0 {
+				continue
+			}
+			check(ierr)
+
+			for _, file:= range items{
+
+			fmt.Fprint(w, folder+"/"+file.Name()+"\n" )
+
+			}
+
+			}
 			//receive file
 			//esta sub
 			//lista de channel
 			// listar archivos y luego enviar uno a uno
 			//download complete
+
+			//***********************
+
+		case "down": //****************para bajar los archivos
+			fmt.Println("> client:", instruction[0], ",downloading files... ")
 
 		case "sub":
 			fmt.Println("> client:", instruction[0], ",subscribing to", instruction[2])
@@ -515,7 +573,7 @@ func Cli(view string) {
 			}
 			// create funcs with flags
 			if strings.Contains(command, "send") {
-				url := client_addr + port + "/do/" + username + "/send/" + value
+				url := client_addr + port + "/do/" + username + "/send/" + value +"/"
 				Send_file("to_server", url)
 				//here complete
 				//Connect(client_addr, port+"/do/"+username+"/send/"+value)
